@@ -162,13 +162,23 @@
 
   <script>
     /* ============ 数据层：LocalStorage 永久存储 ============ */
-    const STORAGE_KEY = 'restaurant_pool_v1';
+    const STORAGE_KEY = 'restaurant_pool_v2';
+
+    // 默认餐厅池（首次访问自动加载）
+    const DEFAULT_RESTAURANTS = [
+      '蒸汽海鲜', '西塔塔烤肉', '海底捞', '费大厨', '苏帮元', '外婆家',
+      '铁板烧', '泰餐', '西餐牛排', '比格自助', '寿喜锅', '云南菜',
+      '桂满陇', '寿司郎', '沙胆彪', '肉蟹煲', '夜宵烧烤类', '麻六记',
+      '付小姐', '日式烤肉', '水煮鱼', '潮汕牛肉火锅', '意大利面', '重八牛府'
+    ];
 
     function loadPool() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
-      } catch (e) { return []; }
+        // 首次访问（无任何记录）→ 返回默认餐厅；已有记录（含空数组）→ 尊重用户数据
+        if (raw === null) return DEFAULT_RESTAURANTS.slice();
+        return JSON.parse(raw);
+      } catch (e) { return DEFAULT_RESTAURANTS.slice(); }
     }
     function savePool(list) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
@@ -179,6 +189,12 @@
     /* ============ Logo 匹配规则 ============ */
     /* 按关键词匹配菜系 emoji：命中靠前规则优先。名字含对应关键词即用对应 logo */
     const EMOJI_RULES = [
+      { kw: ['寿喜','寿喜锅','涮涮锅','关东煮'], emoji: '🍲' },
+      { kw: ['铁板烧','铁板','teppan','和牛铁板'], emoji: '🥩' },
+      { kw: ['比格','披萨自助','必胜'], emoji: '🍕' },
+      { kw: ['自助','buffet','海鲜自助'], emoji: '🍽️' },
+      { kw: ['云南','过桥','汽锅','菌'], emoji: '🍜' },
+      { kw: ['蒸汽','蒸汽海鲜'], emoji: '🦞' },
       { kw: ['火锅','海底捞','捞','涮','麻辣烫','冒菜','串串','小肥羊','呷哺'], emoji: '🍲' },
       { kw: ['烧烤','烤串','烤鱼','炭烤','烧鸟','夜宵','大排档'], emoji: '🍢' },
       { kw: ['烤肉','韩式','石锅','铜盘','炙','和牛','自助烤'], emoji: '🍖' },
@@ -407,6 +423,10 @@
     maskEl.addEventListener('click', e => { if (e.target === maskEl) closeSettings(); });
 
     /* ============ 初始化 ============ */
+    // 首次访问：把默认餐厅持久化到本地，之后用户的增删都以其为基础
+    if (localStorage.getItem(STORAGE_KEY) === null) {
+      savePool(pool);
+    }
     renderCount();
   </script>
 </body>
