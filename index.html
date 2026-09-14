@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <!-- 锁定移动端视口，禁止缩放，避免 iOS 字体缩放错乱 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>今天吃什么</title>
+
+  <!-- 极简引入 Tailwind CSS CDN（唯一外部依赖） -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* 系统字体栈，保证 iOS 显示原生字体、无缩放错乱 */
+    :root { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;            /* 禁止横向滚动 */
+      overscroll-behavior: none;     /* 禁止 iOS 橡皮筋回弹 */
+      /* 参考图：温暖奶油色渐变背景 */
+      background: linear-gradient(180deg, #fdf8ee 0%, #f8edd6 100%);
+      background-attachment: fixed;
+      color: #2e2a22;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    }
+    * { -webkit-tap-highlight-color: transparent; }
+
+    /* 暖色卡片 / 胶囊配色 */
+    .card-warm  { background: #fffdf7; border: 1px solid rgba(180,150,90,0.14); }
+    .pill-warm  { background: #f1e5c8; color: #93804f; }
+    .btn-dark   { background: #3b4354; }   /* 参考图主按钮：深藏青 */
+
+    /* 结果定格动画 */
+    @keyframes popIn {
+      0%   { opacity: 0; transform: scale(0.82) translateY(8px); }
+      60%  { opacity: 1; transform: scale(1.04) translateY(0); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .pop-in { animation: popIn .42s cubic-bezier(.22,1,.36,1) both; }
+
+    /* 弹窗与抽屉动画 */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .fade-in { animation: fadeIn .2s ease both; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .slide-up { animation: slideUp .28s cubic-bezier(.22,1,.36,1) both; }
+
+    /* 抽取时闪动（保持不透明） */
+    @keyframes blink { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+    .blink { animation: blink .5s ease-in-out infinite; }
+
+    /* emoji 轻微浮动 */
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    .floating { animation: float 3s ease-in-out infinite; }
+  </style>
+</head>
+
+<!-- flex 布局 + 安全区适配（iPhone 刘海/底部横条） -->
+<body class="min-h-screen flex flex-col select-none"
+      style="padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);">
+
+  <!-- ===== 顶部标题栏 ===== -->
+  <header class="w-full flex items-center justify-between px-5 pt-6 pb-1">
+    <div>
+      <h1 class="text-xl font-extrabold tracking-tight leading-none">今天吃什么</h1>
+      <p class="text-xs text-black/40 mt-1">点一下，把选择交给命运</p>
+    </div>
+    <!-- 设置按钮：触控区域 ≥ 44px -->
+    <button id="openSettings" aria-label="设置"
+            class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full card-warm active:scale-90 transition">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ===== 核心区域 ===== -->
+  <main class="flex-1 flex flex-col px-5 pt-2 pb-5 gap-4">
+
+    <!-- 结果展示卡片 -->
+    <div class="card-warm rounded-3xl flex-1 flex flex-col items-center justify-center text-center px-5 py-8 min-h-[240px] shadow-sm gap-5">
+      <!-- 舞台区：单家=竖排(logo↑名字↓)；两家=横排两列，每列 logo↑名字↓ -->
+      <div id="stage" class="w-full flex items-center justify-center">
+        <div class="flex flex-col items-center gap-3">
+          <div class="text-6xl floating leading-none">🎲</div>
+          <div class="text-3xl font-extrabold text-[#2e2a22]">还没抽哦</div>
+        </div>
+      </div>
+      <!-- 小胶囊标签 -->
+      <span id="subhint"
+            class="inline-block px-3 py-1 rounded-full pill-warm text-xs font-medium">
+        点击下方按钮开始
+      </span>
+    </div>
+
+    <!-- 双按钮（参考图：左副按钮 + 右主按钮） -->
+    <div class="flex gap-3">
+      <!-- 副按钮：抽两家 -->
+      <button id="pickTwoBtn"
+              class="flex-1 h-14 rounded-full card-warm text-[#2e2a22] text-base font-bold flex items-center justify-center
+                     shadow-sm active:scale-[0.97] transition-transform duration-150">
+        抽两家
+      </button>
+      <!-- 主按钮：抽一家 -->
+      <button id="pickBtn"
+              class="flex-1 h-14 rounded-full btn-dark text-white text-base font-bold flex items-center justify-center
+                     shadow-lg shadow-black/10 active:scale-[0.97] transition-transform duration-150">
+        抽一家
+      </button>
+    </div>
+  </main>
+
+  <!-- ===== 设置抽屉弹窗 ===== -->
+  <div id="settingsMask"
+       class="fixed inset-0 bg-black/40 z-40 items-end justify-center"
+       style="display:none;">
+    <div id="settingsPanel"
+         class="w-full max-w-md bg-[#fffdf7] rounded-t-3xl p-5 max-h-[86vh] flex flex-col slide-up"
+         style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));">
+
+      <!-- 顶部小横条 -->
+      <div class="w-9 h-1.5 rounded-full bg-black/10 mx-auto mb-4"></div>
+
+      <!-- 面板标题 -->
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-extrabold">管理餐厅池 <span id="count" class="text-black/35 font-bold">0</span></h2>
+        <button id="closeSettings" aria-label="关闭"
+                class="w-9 h-9 -mr-1 flex items-center justify-center rounded-full pill-warm active:scale-90 transition">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 添加输入框：支持批量，用空格隔开多家 -->
+      <div class="flex gap-2 mb-1">
+        <input id="restaurantInput" type="text" inputmode="text" enterkeyhint="done"
+               placeholder="输入餐厅名，多家用空格隔开"
+               class="flex-1 h-11 px-4 rounded-2xl bg-[#f7efdd] text-sm outline-none border-2 border-transparent focus:border-[#3b4354]/70 transition" />
+        <button id="addBtn"
+                class="h-11 px-5 rounded-2xl btn-dark text-white text-sm font-semibold active:scale-95 transition">
+          添加
+        </button>
+      </div>
+      <!-- 批量添加说明 -->
+      <p class="text-xs text-black/35 mb-3 px-1">例：海底捞 麻六记 苏帮元 → 一次添加 3 家</p>
+
+      <!-- 餐厅列表 -->
+      <div id="list" class="flex-1 overflow-y-auto -mx-1 px-1 space-y-2" style="-webkit-overflow-scrolling: touch;">
+        <!-- 动态渲染 -->
+      </div>
+
+      <!-- 清空全部 -->
+      <button id="clearBtn"
+              class="mt-3 h-11 w-full rounded-2xl bg-[#f7efdd] text-sm font-semibold text-black/50 active:scale-[0.98] transition">
+        清空全部
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* ============ 数据层：LocalStorage 永久存储 ============ */
+    const STORAGE_KEY = 'restaurant_pool_v1';
+
+    function loadPool() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) { return []; }
+    }
+    function savePool(list) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    let pool = loadPool();
+
+    /* ============ Logo 匹配规则 ============ */
+    /* 按关键词匹配菜系 emoji：命中靠前规则优先。名字含对应关键词即用对应 logo */
+    const EMOJI_RULES = [
+      { kw: ['火锅','海底捞','捞','涮','麻辣烫','冒菜','串串','小肥羊','呷哺'], emoji: '🍲' },
+      { kw: ['烧烤','烤串','烤鱼','炭烤','烧鸟','夜宵','大排档'], emoji: '🍢' },
+      { kw: ['烤肉','韩式','石锅','铜盘','炙','和牛','自助烤'], emoji: '🍖' },
+      { kw: ['炸鸡','鸡','翅','德克士','正新','炸物'], emoji: '🍗' },
+      { kw: ['牛排','西餐','扒','pizza','披萨','比萨'], emoji: '🥩' },
+      { kw: ['意面','意大利面','pasta','意粉'], emoji: '🍝' },
+      { kw: ['寿司','日料','日本','刺身','和食','居酒屋','鳗','三文鱼'], emoji: '🍣' },
+      { kw: ['便当','定食','日式','弁当'], emoji: '🍱' },
+      { kw: ['拉面','牛肉面','兰州','面馆','面','拌面','刀削','油泼'], emoji: '🍜' },
+      { kw: ['米线','米粉','螺蛳粉','桂林','过桥'], emoji: '🍜' },
+      { kw: ['盖饭','盖浇','黄焖','快餐','煲仔','焖','卤肉饭','便当饭'], emoji: '🍛' },
+      { kw: ['粥','砂锅粥','生滚'], emoji: '🥣' },
+      { kw: ['饺子','水饺','蒸饺','锅贴','馄饨','抄手','云吞'], emoji: '🥟' },
+      { kw: ['包子','馒头','早餐','油条','肠粉','点心','茶点','茶餐厅','港式','早茶'], emoji: '🥟' },
+      { kw: ['汉堡','麦当劳','肯德基','kfc','汉堡王','华莱士','快餐店','西式'], emoji: '🍔' },
+      { kw: ['薯','薯条','小吃','炸串'], emoji: '🍟' },
+      { kw: ['卷','墨西哥','taco','塔可','burrito'], emoji: '🌮' },
+      { kw: ['沙拉','轻食','健康','蔬菜','素食','vegan','saladstop'], emoji: '🥗' },
+      { kw: ['虾','龙虾','小龙虾','海鲜','大排','虾火锅','虾煲'], emoji: '🍤' },
+      { kw: ['蟹','大闸蟹','肉蟹煲'], emoji: '🦀' },
+      { kw: ['川菜','麻辣','香锅','水煮','川','辣','重庆','成都'], emoji: '🌶️' },
+      { kw: ['泰','泰式','东南亚','越南','咖喱','咖哩','印度'], emoji: '🍛' },
+      { kw: ['奶茶','喜茶','茶百道','蜜雪','coco','一点点','霸王茶姬','茶'], emoji: '🧋' },
+      { kw: ['咖啡','星巴克','瑞幸','manner','coffee','拿铁','luckin'], emoji: '☕' },
+      { kw: ['蛋糕','烘焙','面包','甜品','甜点','慕斯','提拉米苏','点','bakery'], emoji: '🍰' },
+      { kw: ['冰','雪糕','冰淇淋','冰激凌','甜筒'], emoji: '🍦' },
+      { kw: ['粤','广式','烧腊','煲汤','老火','靓汤'], emoji: '🍜' },
+      { kw: ['羊肉','涮羊','手抓','新疆','大盘鸡'], emoji: '🍖' },
+      { kw: ['饼','煎饼','馅饼','肉夹馍','馍','陕西','西安'], emoji: '🫓' }
+    ];
+    // 无关键词命中时的多样化 emoji 池（按名字 hash 稳定取值，保证多样且同名一致）
+    const FALLBACK_EMOJIS = ['🍜','🍚','🍲','🍛','🍱','🍔','🍕','🌮','🍣','🥟','🍝','🍗','🥗','🍤','🍖','🥘','🫕','🍢'];
+
+    // 根据餐厅名字返回匹配的 logo emoji
+    function getEmojiForName(name) {
+      const n = String(name).toLowerCase();
+      for (const rule of EMOJI_RULES) {
+        if (rule.kw.some(k => n.includes(k.toLowerCase()))) return rule.emoji;
+      }
+      // 稳定 hash → 保证同一家餐厅每次都是同一个 logo，不同餐厅尽量不同
+      let h = 0;
+      for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+      return FALLBACK_EMOJIS[h % FALLBACK_EMOJIS.length];
+    }
+
+    /* ============ DOM 引用 ============ */
+    const stageEl     = document.getElementById('stage');
+    const subhintEl   = document.getElementById('subhint');
+    const pickBtn     = document.getElementById('pickBtn');
+    const pickTwoBtn  = document.getElementById('pickTwoBtn');
+    const countEl     = document.getElementById('count');
+    const maskEl      = document.getElementById('settingsMask');
+    const listEl      = document.getElementById('list');
+    const inputEl     = document.getElementById('restaurantInput');
+
+    /* ============ 工具函数 ============ */
+    // 从数组里随机取 n 个不重复元素
+    function sampleN(arr, n) {
+      const copy = arr.slice();
+      const out = [];
+      for (let i = 0; i < n && copy.length; i++) {
+        const idx = Math.floor(Math.random() * copy.length);
+        out.push(copy.splice(idx, 1)[0]);
+      }
+      return out;
+    }
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>"']/g, s => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[s]));
+    }
+
+    /* ============ 舞台渲染：logo 在上、餐厅名在下 ============ */
+    // 单个「logo↑ + 名字↓」列
+    function stageColumn(name, emojiSize, nameSize) {
+      const emoji = getEmojiForName(name);
+      return (
+        '<div class="flex flex-col items-center gap-2 min-w-0 max-w-[46%]">' +
+          '<div class="' + emojiSize + ' floating leading-none">' + emoji + '</div>' +
+          '<div class="' + nameSize + ' font-extrabold break-words text-[#2e2a22]">' + escapeHTML(name) + '</div>' +
+        '</div>'
+      );
+    }
+    // 渲染结果：一家=竖排大号；两家=横排两列（间隔协调）
+    function renderStage(names) {
+      if (names.length === 2) {
+        stageEl.innerHTML =
+          '<div class="w-full flex items-start justify-center gap-6">' +
+            stageColumn(names[0], 'text-5xl', 'text-2xl') +
+            stageColumn(names[1], 'text-5xl', 'text-2xl') +
+          '</div>';
+      } else {
+        stageEl.innerHTML =
+          '<div class="flex flex-col items-center gap-3">' +
+            '<div class="text-6xl floating leading-none">' + getEmojiForName(names[0]) + '</div>' +
+            '<div class="text-3xl font-extrabold break-words text-[#2e2a22]">' + escapeHTML(names[0]) + '</div>' +
+          '</div>';
+      }
+    }
+
+    /* ============ 列表渲染 ============ */
+    function renderCount() {
+      countEl.textContent = pool.length;
+    }
+    function renderList() {
+      listEl.innerHTML = '';
+      if (pool.length === 0) {
+        listEl.innerHTML = '<p class="text-center text-black/30 text-sm py-10">还没有餐厅，先添加一个吧 👆</p>';
+        return;
+      }
+      pool.forEach((name, index) => {
+        const row = document.createElement('div');
+        row.className = 'bg-[#f7efdd] rounded-2xl flex items-center justify-between pl-3 pr-2 py-2.5';
+        // 序号 + logo + 名字
+        const left = document.createElement('div');
+        left.className = 'flex items-center gap-2 min-w-0';
+        left.innerHTML =
+          '<span class="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-[#e7d9b6] text-xs font-bold text-[#8a7743]">' + (index + 1) + '</span>' +
+          '<span class="text-xl leading-none">' + getEmojiForName(name) + '</span>';
+        const span = document.createElement('span');
+        span.className = 'text-sm font-medium break-all';
+        span.textContent = name;
+        left.appendChild(span);
+        row.appendChild(left);
+        // 删除按钮（触控区域放大）
+        const del = document.createElement('button');
+        del.className = 'shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-black/35 active:bg-black/10 active:scale-90 transition';
+        del.setAttribute('aria-label', '删除');
+        del.innerHTML =
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+        del.addEventListener('click', () => removeRestaurant(index));
+        row.appendChild(del);
+        listEl.appendChild(row);
+      });
+    }
+
+    /* ============ 业务逻辑 ============ */
+    // 批量添加：支持空格（含全角空格）/ 换行分隔，逐条识别、去重
+    function addRestaurant() {
+      const raw = inputEl.value;
+      if (!raw.trim()) return;
+      // 按空白字符拆分（半角/全角空格、Tab、换行），过滤空项
+      const names = raw.split(/[\s\u3000]+/).map(s => s.trim()).filter(Boolean);
+      let added = 0;
+      names.forEach(name => {
+        if (!pool.includes(name)) {   // 与已有及本批次去重
+          pool.push(name);
+          added++;
+        }
+      });
+      if (added > 0) savePool(pool);
+      inputEl.value = '';
+      renderList();
+      renderCount();
+    }
+    function removeRestaurant(index) {
+      pool.splice(index, 1);
+      savePool(pool);
+      renderList();
+      renderCount();
+    }
+    function clearAll() {
+      if (pool.length === 0) return;
+      if (!confirm('确定清空全部餐厅吗？')) return;
+      pool = [];
+      savePool(pool);
+      renderList();
+      renderCount();
+    }
+
+    // 抽取入口：count = 1 或 2
+    function pick(count) {
+      pool = loadPool(); // 抽取前同步最新数据
+      if (pool.length === 0) {
+        alert('请先去设置添加餐厅');
+        openSettings();
+        return;
+      }
+      if (count === 2 && pool.length < 2) {
+        alert('抽两家至少需要 2 家餐厅哦');
+        return;
+      }
+
+      pickBtn.disabled = true;
+      pickTwoBtn.disabled = true;
+      stageEl.classList.remove('pop-in');
+      stageEl.classList.add('blink');
+      subhintEl.textContent = '抽取中…';
+
+      let ticks = 0;
+      const maxTicks = 12;
+      const timer = setInterval(() => {
+        renderStage(sampleN(pool, count));          // 滚动预览（logo 随名字变化）
+        ticks++;
+        if (ticks >= maxTicks) {
+          clearInterval(timer);
+          renderStage(sampleN(pool, count));         // 最终结果
+          stageEl.classList.remove('blink');
+          subhintEl.textContent = count === 2 ? '这两家里挑一个吧！' : '就决定是你了！';
+          void stageEl.offsetWidth;                  // 重排以重启动画
+          stageEl.classList.add('pop-in');
+          pickBtn.disabled = false;
+          pickTwoBtn.disabled = false;
+        }
+      }, 55);
+    }
+
+    /* ============ 弹窗控制 ============ */
+    function openSettings() {
+      maskEl.style.display = 'flex';
+      maskEl.classList.add('fade-in');
+      renderList();
+    }
+    function closeSettings() {
+      maskEl.style.display = 'none';
+    }
+
+    /* ============ 事件绑定 ============ */
+    pickBtn.addEventListener('click', () => pick(1));
+    pickTwoBtn.addEventListener('click', () => pick(2));
+    document.getElementById('openSettings').addEventListener('click', openSettings);
+    document.getElementById('closeSettings').addEventListener('click', closeSettings);
+    document.getElementById('addBtn').addEventListener('click', addRestaurant);
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+    inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') addRestaurant(); });
+    maskEl.addEventListener('click', e => { if (e.target === maskEl) closeSettings(); });
+
+    /* ============ 初始化 ============ */
+    renderCount();
+  </script>
+</body>
+</html>
