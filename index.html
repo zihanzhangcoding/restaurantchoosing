@@ -2,432 +2,746 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <!-- 锁定移动端视口，禁止缩放，避免 iOS 字体缩放错乱 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>今天吃什么</title>
+  <title>今天吃什么 · 去哪玩</title>
 
-  <!-- 极简引入 Tailwind CSS CDN（唯一外部依赖） -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    /* 系统字体栈，保证 iOS 显示原生字体、无缩放错乱 */
-    :root { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;            /* 禁止横向滚动 */
-      overscroll-behavior: none;     /* 禁止 iOS 橡皮筋回弹 */
-      /* 参考图：温暖奶油色渐变背景 */
-      background: linear-gradient(180deg, #fdf8ee 0%, #f8edd6 100%);
-      background-attachment: fixed;
-      color: #2e2a22;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    /* 主题色变量（默认=吃什么 暖色奶油） */
+    :root{
+      --bg1:#fdf8ee; --bg2:#f8edd6; --card:#fffdf7; --cardBorder:rgba(180,150,90,.14);
+      --pillBg:#f1e5c8; --pillFg:#93804f; --primary:#3b4354; --inputBg:#f7efdd;
+      --numBg:#e7d9b6; --numFg:#8a7743; --panel:#fffdf7;
     }
-    * { -webkit-tap-highlight-color: transparent; }
-
-    /* 暖色卡片 / 胶囊配色 */
-    .card-warm  { background: #fffdf7; border: 1px solid rgba(180,150,90,0.14); }
-    .pill-warm  { background: #f1e5c8; color: #93804f; }
-    .btn-dark   { background: #3b4354; }   /* 参考图主按钮：深藏青 */
-
-    /* 结果定格动画 */
-    @keyframes popIn {
-      0%   { opacity: 0; transform: scale(0.82) translateY(8px); }
-      60%  { opacity: 1; transform: scale(1.04) translateY(0); }
-      100% { opacity: 1; transform: scale(1); }
+    /* 去哪玩 = 浅蓝色系 */
+    body.theme-blue{
+      --bg1:#eef6fd; --bg2:#d9e9fb; --card:#fbfdff; --cardBorder:rgba(90,140,190,.18);
+      --pillBg:#d8e8f7; --pillFg:#4d6f92; --primary:#3a5a80; --inputBg:#e8f1fb;
+      --numBg:#cfe0f2; --numFg:#3f6289; --panel:#fbfdff;
     }
-    .pop-in { animation: popIn .42s cubic-bezier(.22,1,.36,1) both; }
+    :root{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+    html{ background:var(--bg1); }
+    html,body{
+      margin:0; padding:0; overflow-x:hidden; overscroll-behavior:none;
+      color:#2b2a26;
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Helvetica Neue",Arial,sans-serif;
+    }
+    body{
+      background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 100%);
+      background-attachment:fixed;
+      transition:background .35s ease;
+    }
+    *{ -webkit-tap-highlight-color:transparent; }
 
-    /* 弹窗与抽屉动画 */
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .fade-in { animation: fadeIn .2s ease both; }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .slide-up { animation: slideUp .28s cubic-bezier(.22,1,.36,1) both; }
+    .card-warm{ background:var(--card); border:1px solid var(--cardBorder); }
+    .pill-warm{ background:var(--pillBg); color:var(--pillFg); }
+    .btn-dark { background:var(--primary); }
+    .input-bg { background:var(--inputBg); }
+    .num-badge{ background:var(--numBg); color:var(--numFg); }
+    .panel-bg { background:var(--panel); }
 
-    /* 抽取时闪动（保持不透明） */
-    @keyframes blink { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
-    .blink { animation: blink .5s ease-in-out infinite; }
-
-    /* emoji 轻微浮动 */
-    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-    .floating { animation: float 3s ease-in-out infinite; }
+    @keyframes popIn{0%{opacity:0;transform:scale(.82) translateY(8px);}60%{opacity:1;transform:scale(1.04) translateY(0);}100%{opacity:1;transform:scale(1);}}
+    .pop-in{animation:popIn .42s cubic-bezier(.22,1,.36,1) both;}
+    @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+    .fade-in{animation:fadeIn .2s ease both;}
+    @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+    .slide-up{animation:slideUp .28s cubic-bezier(.22,1,.36,1) both;}
+    @keyframes blink{0%,100%{opacity:.55;}50%{opacity:1;}}
+    .blink{animation:blink .5s ease-in-out infinite;}
+    @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+    .floating{animation:float 3s ease-in-out infinite;}
   </style>
 </head>
 
-<!-- flex 布局 + 安全区适配（iPhone 刘海/底部横条） -->
 <body class="min-h-screen flex flex-col select-none"
       style="padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);">
 
   <!-- ===== 顶部标题栏 ===== -->
   <header class="w-full flex items-center justify-between px-5 pt-6 pb-1">
-    <div>
-      <h1 class="text-xl font-extrabold tracking-tight leading-none">今天吃什么</h1>
-      <p class="text-xs text-black/40 mt-1">点一下，把选择交给命运</p>
+    <div class="min-w-0">
+      <h1 id="pageTitle" class="text-xl font-extrabold tracking-tight leading-none">今天吃什么</h1>
+      <p id="pageSub" class="text-xs text-black/40 mt-1">点一下，把选择交给命运</p>
     </div>
-    <!-- 设置按钮：触控区域 ≥ 44px -->
-    <button id="openSettings" aria-label="设置"
-            class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full card-warm active:scale-90 transition">
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-      </svg>
-    </button>
+    <div class="shrink-0 flex items-center gap-2">
+      <!-- 模式切换按钮 -->
+      <button id="toggleMode" aria-label="切换模式"
+              class="h-10 px-3 flex items-center gap-1.5 rounded-full card-warm text-sm font-bold text-[#2b2a26] active:scale-90 transition">
+        <span id="toggleIcon" class="leading-none flex items-center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+        </span>
+        <span id="toggleText">去哪玩</span>
+      </button>
+      <!-- 设置按钮（两模式都显示，按模式打开对应设置） -->
+      <button id="openSettings" aria-label="设置"
+              class="w-10 h-10 flex items-center justify-center rounded-full card-warm active:scale-90 transition">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <!-- ===== 核心区域 ===== -->
   <main class="flex-1 flex flex-col px-5 pt-2 pb-5 gap-4">
-
-    <!-- 结果展示卡片 -->
     <div class="card-warm rounded-3xl flex-1 flex flex-col items-center justify-center text-center px-5 py-8 min-h-[240px] shadow-sm gap-5">
-      <!-- 舞台区：单家=竖排(logo↑名字↓)；两家=横排两列，每列 logo↑名字↓ -->
       <div id="stage" class="w-full flex items-center justify-center">
         <div class="flex flex-col items-center gap-3">
           <div class="text-6xl floating leading-none">🎲</div>
-          <div class="text-3xl font-extrabold text-[#2e2a22]">还没抽哦</div>
+          <div class="text-3xl font-extrabold text-black/70">还没抽哦</div>
         </div>
       </div>
-      <!-- 小胶囊标签 -->
-      <span id="subhint"
-            class="inline-block px-3 py-1 rounded-full pill-warm text-xs font-medium">
-        点击下方按钮开始
-      </span>
+      <span id="subhint" class="inline-block px-3 py-1 rounded-full pill-warm text-xs font-medium">点击下方按钮开始</span>
     </div>
 
-    <!-- 双按钮（参考图：左副按钮 + 右主按钮） -->
-    <div class="flex gap-3">
-      <!-- 副按钮：抽两家 -->
-      <button id="pickTwoBtn"
-              class="flex-1 h-14 rounded-full card-warm text-[#2e2a22] text-base font-bold flex items-center justify-center
-                     shadow-sm active:scale-[0.97] transition-transform duration-150">
-        抽两家
-      </button>
-      <!-- 主按钮：抽一家 -->
-      <button id="pickBtn"
-              class="flex-1 h-14 rounded-full btn-dark text-white text-base font-bold flex items-center justify-center
-                     shadow-lg shadow-black/10 active:scale-[0.97] transition-transform duration-150">
-        抽一家
-      </button>
+    <!-- 吃什么：双按钮 -->
+    <div id="foodBtns" class="flex gap-3">
+      <button data-food="2" class="flex-1 h-14 rounded-full card-warm text-[#2b2a26] text-base font-bold flex items-center justify-center shadow-sm active:scale-[0.97] transition-transform duration-150">抽两家</button>
+      <button data-food="1" class="flex-1 h-14 rounded-full btn-dark text-white text-base font-bold flex items-center justify-center shadow-lg shadow-black/10 active:scale-[0.97] transition-transform duration-150">抽一家</button>
+    </div>
+
+    <!-- 去哪玩：6 个按钮（文字旁带数量徽标） -->
+    <div id="placeBtns" class="hidden grid grid-cols-2 gap-3">
+      <button data-cat="suburb"   class="h-14 rounded-2xl card-warm text-[#2b2a26] text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.97] transition">🏞️ 远处郊游</button>
+      <button data-cat="nearby"   class="h-14 rounded-2xl card-warm text-[#2b2a26] text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.97] transition">📍 附近玩玩</button>
+      <button data-cat="historic" class="h-14 rounded-2xl card-warm text-[#2b2a26] text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.97] transition">🏯 名胜古迹</button>
+      <button data-cat="shopping" class="h-14 rounded-2xl card-warm text-[#2b2a26] text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.97] transition">🛍️ 商业街</button>
+      <button data-cat="indoor"   class="h-14 rounded-2xl card-warm text-[#2b2a26] text-sm font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.97] transition">🏛️ 室内逛逛</button>
+      <button data-cat="all"      class="h-14 rounded-2xl btn-dark text-white text-sm font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-black/10 active:scale-[0.97] transition">🎲 全部随机</button>
     </div>
   </main>
 
-  <!-- ===== 设置抽屉弹窗 ===== -->
-  <div id="settingsMask"
-       class="fixed inset-0 bg-black/40 z-40 items-end justify-center"
-       style="display:none;">
-    <div id="settingsPanel"
-         class="w-full max-w-md bg-[#fffdf7] rounded-t-3xl p-5 max-h-[86vh] flex flex-col slide-up"
-         style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));">
-
-      <!-- 顶部小横条 -->
+  <!-- ===== 餐厅设置弹窗（吃什么） ===== -->
+  <div id="settingsMask" class="fixed inset-0 bg-black/40 z-40 items-end justify-center" style="display:none;">
+    <div class="w-full max-w-md panel-bg rounded-t-3xl p-5 max-h-[86vh] flex flex-col slide-up" style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));">
       <div class="w-9 h-1.5 rounded-full bg-black/10 mx-auto mb-4"></div>
-
-      <!-- 面板标题 -->
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-lg font-extrabold">管理餐厅池 <span id="count" class="text-black/35 font-bold">0</span></h2>
-        <button id="closeSettings" aria-label="关闭"
-                class="w-9 h-9 -mr-1 flex items-center justify-center rounded-full pill-warm active:scale-90 transition">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
+        <button id="closeSettings" aria-label="关闭" class="w-9 h-9 -mr-1 flex items-center justify-center rounded-full pill-warm active:scale-90 transition">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
-
-      <!-- 添加输入框：支持批量，用空格隔开多家 -->
       <div class="flex gap-2 mb-1">
-        <input id="restaurantInput" type="text" inputmode="text" enterkeyhint="done"
-               placeholder="输入餐厅名，多家用空格隔开"
-               class="flex-1 h-11 px-4 rounded-2xl bg-[#f7efdd] text-sm outline-none border-2 border-transparent focus:border-[#3b4354]/70 transition" />
-        <button id="addBtn"
-                class="h-11 px-5 rounded-2xl btn-dark text-white text-sm font-semibold active:scale-95 transition">
-          添加
+        <input id="restaurantInput" type="text" inputmode="text" enterkeyhint="done" placeholder="输入餐厅名，多家用空格隔开"
+               class="flex-1 h-11 px-4 rounded-2xl input-bg text-sm outline-none border-2 border-transparent focus:border-[#3b4354]/70 transition" />
+        <button id="addBtn" class="h-11 px-5 rounded-2xl btn-dark text-white text-sm font-semibold active:scale-95 transition">添加</button>
+      </div>
+      <p class="text-xs text-black/35 mb-3 px-1">例：海底捞 麻六记 苏帮元 → 一次添加 3 家</p>
+      <div id="list" class="flex-1 overflow-y-auto -mx-1 px-1 space-y-2" style="-webkit-overflow-scrolling: touch;"></div>
+      <button id="clearBtn" class="mt-3 h-11 w-full rounded-2xl input-bg text-sm font-semibold text-black/50 active:scale-[0.98] transition">清空全部</button>
+    </div>
+  </div>
+
+  <!-- ===== 地名设置弹窗（去哪玩，浅蓝主题） ===== -->
+  <div id="placeMask" class="fixed inset-0 bg-black/40 z-40 items-end justify-center" style="display:none;">
+    <div class="w-full max-w-md panel-bg rounded-t-3xl p-5 max-h-[88vh] flex flex-col slide-up" style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));">
+      <div class="w-9 h-1.5 rounded-full bg-black/10 mx-auto mb-4"></div>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-extrabold">编辑地名库</h2>
+        <button id="closePlace" aria-label="关闭" class="w-9 h-9 -mr-1 flex items-center justify-center rounded-full pill-warm active:scale-90 transition">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
-      <!-- 批量添加说明 -->
-      <p class="text-xs text-black/35 mb-3 px-1">例：海底捞 麻六记 苏帮元 → 一次添加 3 家</p>
-
-      <!-- 餐厅列表 -->
-      <div id="list" class="flex-1 overflow-y-auto -mx-1 px-1 space-y-2" style="-webkit-overflow-scrolling: touch;">
-        <!-- 动态渲染 -->
+      <!-- 分类切换 -->
+      <div id="placeTabs" class="flex flex-wrap gap-2 mb-2"></div>
+      <p id="placeCountLine" class="text-xs text-black/45 mb-2 px-1"></p>
+      <!-- 添加 -->
+      <div class="flex gap-2 mb-1">
+        <input id="placeInput" type="text" inputmode="text" enterkeyhint="done" placeholder="输入地名，可带距离，如：故宫 15.5"
+               class="flex-1 h-11 px-4 rounded-2xl input-bg text-sm outline-none border-2 border-transparent focus:border-[#3a5a80]/70 transition" />
+        <button id="addPlace" class="h-11 px-5 rounded-2xl btn-dark text-white text-sm font-semibold active:scale-95 transition">添加</button>
       </div>
-
-      <!-- 清空全部 -->
-      <button id="clearBtn"
-              class="mt-3 h-11 w-full rounded-2xl bg-[#f7efdd] text-sm font-semibold text-black/50 active:scale-[0.98] transition">
-        清空全部
-      </button>
+      <p class="text-xs text-black/35 mb-3 px-1">多个用换行或逗号分隔；距离可省略。"全部随机"由五类自动去重合并。</p>
+      <div id="placeList" class="flex-1 overflow-y-auto -mx-1 px-1 space-y-2" style="-webkit-overflow-scrolling: touch;"></div>
+      <button id="clearPlace" class="mt-3 h-11 w-full rounded-2xl input-bg text-sm font-semibold text-black/50 active:scale-[0.98] transition">清空当前分类</button>
     </div>
   </div>
 
   <script>
-    /* ============ 数据层：LocalStorage 永久存储 ============ */
+    /* ==================== 餐厅默认数据 ==================== */
     const STORAGE_KEY = 'restaurant_pool_v2';
-
-    // 默认餐厅池（首次访问自动加载）
     const DEFAULT_RESTAURANTS = [
-      '蒸汽海鲜', '西塔塔烤肉', '海底捞', '费大厨', '苏帮元', '外婆家',
-      '铁板烧', '泰餐', '西餐牛排', '比格自助', '寿喜锅', '云南菜',
-      '桂满陇', '寿司郎', '沙胆彪', '肉蟹煲', '夜宵烧烤类', '麻六记',
-      '付小姐', '日式烤肉', '水煮鱼', '潮汕牛肉火锅', '意大利面', '重八牛府'
+      '蒸汽海鲜','西塔塔烤肉','海底捞','费大厨','苏帮元','外婆家',
+      '铁板烧','泰餐','西餐牛排','比格自助','寿喜锅','云南菜',
+      '桂满陇','寿司郎','沙胆彪','肉蟹煲','夜宵烧烤类','麻六记',
+      '付小姐','日式烤肉','水煮鱼','潮汕牛肉火锅','意大利面','重八牛府'
     ];
 
-    function loadPool() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        // 首次访问（无任何记录）→ 返回默认餐厅；已有记录（含空数组）→ 尊重用户数据
-        if (raw === null) return DEFAULT_RESTAURANTS.slice();
-        return JSON.parse(raw);
-      } catch (e) { return DEFAULT_RESTAURANTS.slice(); }
-    }
-    function savePool(list) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    }
+    /* ==================== 地名默认库（首次访问用） ==================== */
+    const PLACE_KEY = 'place_libs_v1';
+    const PLACE_RAW = {
+      suburb: `龙潭湖公园 23.5
+天坛公园 23.0
+明城墙遗址公园 22.8
+三里河公园 22.5
+永定门公园 23.8
+玉渊潭公园 20.3
+将府公园 26.9
+东凤公园 27.0
+北京欢乐谷 31.2
+温榆河公园东园朝阳示范园 21.5
+兴隆公园 26.2
+星河湾生态公园 26.5
+北京大运河文化旅游景区 34.5
+北京环球影城 36.5
+西海子公园 32.8
+城市绿心森林公园 34.8
+静之湖森林公园 25.7
+十三陵水库 30.2
+乐多港卡乐星球 29.5
+南苑森林公园 30.2
+世界花卉大观园 31.0
+北京世界公园 29.5
+群明湖 25.2
+北京国际雕塑公园 20.2
+慢闪公园 40.2
+檀谷生活汇 39.5
+永定河休闲森林公园 29.8
+南海子公园 39.5
+新城滨河森林公园 40.2
+丽泽体育公园 25.0
+西局玉璞园 24.5
+石榴庄公园 28.0
+国家植物园 15.2
+紫竹院公园 17.9
+西山森林公园 18.5
+翠湖国家城市湿地公园 18.5
+北海公园 19.1`,
+      nearby: `奥林匹克森林公园 10.8
+奥森书局 11.0
+奥塔 11.2
+中国科学技术馆 11.5
+中国考古博物馆 11.8
+中国科学家博物馆 11.7
+国家动物博物馆 12.0
+北京工艺美术馆 12.1
+北极寺公园 12.2
+五道口购物中心 12.5
+世纪金源购物中心 12.5
+中华民族博物院 12.5
+中国化工博物馆 13.0
+ART PARK大融城 13.2
+中国电信博物馆 13.3
+模范书局 13.5
+京张铁路遗址公园 12.8
+北京航空航天博物馆 13.8
+百望山森林公园 13.8
+北京卫星制造厂科技园 14.1
+海淀公园 14.2
+圆明园 14.5
+中国现代文学馆 14.8
+未来科学城滨水公园 14.8
+超级合生汇 7.8
+回龙观文化艺术中心 8.0
+砖窑里文创街区 8.2
+首开LONG街 8.5
+北投购物公园 13.1
+北投奥园 13.3`,
+      historic: `天坛公园 23.0
+明城墙遗址公园 22.8
+左安门角楼 24.2
+永定门公园 23.8
+法源寺历史文化街区 23.1
+东交民巷使馆建筑群 22.2
+康有为故居 21.3
+谭嗣同故居 21.4
+老舍故居 20.2
+恭王府花园 18.6
+钟楼 17.8
+鼓楼 17.7
+白塔寺 19.2
+西什库教堂 19.8
+国子监 18.2
+红楼公共藏书楼 19.0
+颐和园 16.0
+圆明园 14.5
+明十三陵 30.8
+卢沟桥 30.0
+宛平城 30.2
+长辛店老镇 29.5
+琉璃渠村 38.8
+模式口大街 22.7
+京张铁路遗址公园 12.8
+北海公园 19.1
+拉菲特城堡 15.5`,
+      shopping: `潘家园旧货市场 26.1
+隆福寺商业 19.5
+王府井喜悦 20.0
+王府井书店 20.2
+王府井中环 20.3
+和平果局 20.1
+北京坊 22.1
+北京中海大吉巷 21.5
+南锣鼓巷 18.5
+烟袋斜街 18.0
+杨梅竹斜街 21.8
+鲜鱼口老字号美食街 22.2
+西兴隆街 21.9
+魏公芳华里 17.6
+西单更新里 20.5
+西单大悦城 20.3
+三里屯太古里 21.5
+三里屯一号场T+ 21.7
+蓝色港湾 21.8
+亮马河滨水带 22.2
+朗园Vintage 25.1
+The Box朝外 24.7
+世贸天阶 25.0
+国贸商城 25.2
+SKP 24.9
+侨福芳草地 24.0
+北京友谊商店 24.5
+东坝万达广场 28.5
+合生汇 28.8
+惠多港购物中心 30.2
+朗园station 27.2
+竞园文创产业园 29.1
+创1958园区 29.7
+二十二街艺术区 30.0
+东朝时代创意园 30.3
+朝阳大悦城 25.8
+西店记忆 26.7
+龙湖常营天街 27.3
+通州万象汇 33.9
+大融城 33.5
+运河西岸步行街 33.0
+宋庄艺术小镇 32.0
+中粮祥云小镇 25.8
+超级合生汇 7.8
+首开LONG街 8.5
+砖窑里 8.2
+丰台大悦春风里 28.5
+王府井奥莱香江小镇 27.8
+龙湖北苑天街 28.2
+暖山生活 24.8
+林奥CITY PARK 25.2
+DT51 25.0
+喜隆多 21.8
+京西大悦城 22.3
+六工汇 24.8
+丽泽天街 25.2
+丽泽天地 25.5
+五道口购物中心 12.5
+世纪金源购物中心 12.5
+ART PARK大融城 13.2
+华熙Live·五棵松 18.2
+海淀大悦城 16.8
+西红门荟聚 34.8
+大族广场 38.2
+京东Mall 27.8
+爱工场北化机Mall 29.5
+北投购物公园 13.1
+亚洲金融大厦 12.3
+城奥大厦 12.8
+丽泽SOHO 24.8`,
+      indoor: `中国古代建筑博物馆 23.2
+景泰蓝艺术博物馆 22.7
+南池子美术馆 21.3
+中国妇女儿童博物馆 20.8
+史家胡同博物馆 20.5
+中国美术馆 19.8
+中国海关博物馆 21.5
+中国法院博物馆 20.7
+艺云数字艺术中心 19.7
+中国铁道博物馆（正阳门馆） 22.4
+中国国家博物馆 22.6
+北京市规划展览馆 22.3
+中国钱币博物馆 22.0
+湖广会馆 21.7
+93号院博物馆 21.6
+北京劝业场 22.0
+国家大剧院 21.8
+中央礼品文物管理中心 22.5
+北京石刻艺术博物馆 19.2
+中国地质博物馆 18.8
+国家典籍博物馆 19.0
+北京海洋馆 18.5
+北京天文馆 18.7
+中国艺术博物馆 18.3
+北京公交馆 22.5
+中华世纪坛 21.0
+鲁迅博物馆 19.5
+中国考古博物馆 11.8
+北京工艺美术馆 12.1
+中国科学技术馆 11.5
+中国科学家博物馆 11.7
+国家动物博物馆 12.0
+中华民族博物院 12.5
+奥森书局 11.0
+中国现代文学馆 14.8
+越界锦荟园 15.2
+华堂新辰汇 15.0
+现代汽车文化中心 19.5
+尤伦斯当代艺术中心 20.2
+咖啡博物馆 19.8
+其实唱片 20.0
+微博IN跨次元引力场 22.8
+阿派郎创造力星球 22.5
+泡泡玛特城市乐园 23.0
+中国农业博物馆 20.9
+泰康美术馆 24.8
+民航博物馆 27.5
+中国铁道博物馆（东郊馆） 28.2
+中国电影博物馆 27.8
+中国艺术研究院油画院 29.8
+红砖美术馆 22.2
+北京大运河博物馆 34.8
+北京城市图书馆 35.0
+北京艺术中心 35.2
+路县故城遗址博物馆 36.1
+大戚收音机电影机博物馆 31.5
+宋庄美术馆 32.2
+通州博物馆 33.1
+松美术馆 24.5
+雅昌艺术中心金马园区 26.2
+中国航天博物馆 29.8
+国际榴莲馆 30.5
+北京汽车博物馆 27.9
+南宫自然艺术博物馆 34.7
+SoReal科幻乐园 24.5
+时代美术馆 17.8
+北京航空航天博物馆 13.8
+中国化工博物馆 13.0
+中国电信博物馆 13.3
+北京卫星制造厂科技园 14.1
+模范书局 13.5
+中国印刷博物馆 39.7
+世界机器人大会展馆 40.2
+小米汽车超级工厂店 41.5
+可口可乐博物馆 38.7
+机器人4S店 35.8
+北京茶叶博物馆 24.7
+泰舍书局 25.3
+中国园林博物馆 30.5
+回龙观文化艺术中心 8.0`
+    };
+    const PLACE_CATS = ['suburb','nearby','historic','shopping','indoor'];
+    const PLACE_LABELS = { suburb:'远处郊游', nearby:'附近玩玩', historic:'名胜古迹', shopping:'商业街', indoor:'室内逛逛', all:'全部随机' };
+  </script>
 
-    let pool = loadPool();
+  <script>
+    /* ==================== 通用工具 ==================== */
+    function escapeHTML(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function sampleN(arr,n){ const c=arr.slice(),o=[]; for(let i=0;i<n&&c.length;i++)o.push(c.splice(Math.floor(Math.random()*c.length),1)[0]); return o; }
+    function hashStr(s){ let h=0; for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0; return h; }
+    // 解析 "地名 距离" 一行；名字可含空格，只剥离结尾数字
+    function parseEntry(line){ const m=line.trim().match(/^(.*?)\s+([\d.]+)$/); return m?{name:m[1].trim(),dist:parseFloat(m[2])}:{name:line.trim(),dist:null}; }
+    function parseLib(raw){ return raw.trim().split('\n').map(parseEntry).filter(x=>x.name); }
 
-    /* ============ Logo 匹配规则 ============ */
-    /* 按关键词匹配菜系 emoji：命中靠前规则优先。名字含对应关键词即用对应 logo */
-    const EMOJI_RULES = [
-      { kw: ['寿喜','寿喜锅','涮涮锅','关东煮'], emoji: '🍲' },
-      { kw: ['铁板烧','铁板','teppan','和牛铁板'], emoji: '🥩' },
-      { kw: ['比格','披萨自助','必胜'], emoji: '🍕' },
-      { kw: ['自助','buffet','海鲜自助'], emoji: '🍽️' },
-      { kw: ['云南','过桥','汽锅','菌'], emoji: '🍜' },
-      { kw: ['蒸汽','蒸汽海鲜'], emoji: '🦞' },
-      { kw: ['火锅','海底捞','捞','涮','麻辣烫','冒菜','串串','小肥羊','呷哺'], emoji: '🍲' },
-      { kw: ['烧烤','烤串','烤鱼','炭烤','烧鸟','夜宵','大排档'], emoji: '🍢' },
-      { kw: ['烤肉','韩式','石锅','铜盘','炙','和牛','自助烤'], emoji: '🍖' },
-      { kw: ['炸鸡','鸡','翅','德克士','正新','炸物'], emoji: '🍗' },
-      { kw: ['牛排','西餐','扒','pizza','披萨','比萨'], emoji: '🥩' },
-      { kw: ['意面','意大利面','pasta','意粉'], emoji: '🍝' },
-      { kw: ['寿司','日料','日本','刺身','和食','居酒屋','鳗','三文鱼'], emoji: '🍣' },
-      { kw: ['便当','定食','日式','弁当'], emoji: '🍱' },
-      { kw: ['拉面','牛肉面','兰州','面馆','面','拌面','刀削','油泼'], emoji: '🍜' },
-      { kw: ['米线','米粉','螺蛳粉','桂林','过桥'], emoji: '🍜' },
-      { kw: ['盖饭','盖浇','黄焖','快餐','煲仔','焖','卤肉饭','便当饭'], emoji: '🍛' },
-      { kw: ['粥','砂锅粥','生滚'], emoji: '🥣' },
-      { kw: ['饺子','水饺','蒸饺','锅贴','馄饨','抄手','云吞'], emoji: '🥟' },
-      { kw: ['包子','馒头','早餐','油条','肠粉','点心','茶点','茶餐厅','港式','早茶'], emoji: '🥟' },
-      { kw: ['汉堡','麦当劳','肯德基','kfc','汉堡王','华莱士','快餐店','西式'], emoji: '🍔' },
-      { kw: ['薯','薯条','小吃','炸串'], emoji: '🍟' },
-      { kw: ['卷','墨西哥','taco','塔可','burrito'], emoji: '🌮' },
-      { kw: ['沙拉','轻食','健康','蔬菜','素食','vegan','saladstop'], emoji: '🥗' },
-      { kw: ['虾','龙虾','小龙虾','海鲜','大排','虾火锅','虾煲'], emoji: '🍤' },
-      { kw: ['蟹','大闸蟹','肉蟹煲'], emoji: '🦀' },
-      { kw: ['川菜','麻辣','香锅','水煮','川','辣','重庆','成都'], emoji: '🌶️' },
-      { kw: ['泰','泰式','东南亚','越南','咖喱','咖哩','印度'], emoji: '🍛' },
-      { kw: ['奶茶','喜茶','茶百道','蜜雪','coco','一点点','霸王茶姬','茶'], emoji: '🧋' },
-      { kw: ['咖啡','星巴克','瑞幸','manner','coffee','拿铁','luckin'], emoji: '☕' },
-      { kw: ['蛋糕','烘焙','面包','甜品','甜点','慕斯','提拉米苏','点','bakery'], emoji: '🍰' },
-      { kw: ['冰','雪糕','冰淇淋','冰激凌','甜筒'], emoji: '🍦' },
-      { kw: ['粤','广式','烧腊','煲汤','老火','靓汤'], emoji: '🍜' },
-      { kw: ['羊肉','涮羊','手抓','新疆','大盘鸡'], emoji: '🍖' },
-      { kw: ['饼','煎饼','馅饼','肉夹馍','馍','陕西','西安'], emoji: '🫓' }
+    /* ==================== 餐厅 logo（食物） ==================== */
+    const EMOJI_RULES=[
+      {kw:['寿喜','寿喜锅','涮涮锅','关东煮'],emoji:'🍲'},{kw:['铁板烧','铁板','teppan','和牛铁板'],emoji:'🥩'},
+      {kw:['比格','披萨自助','必胜'],emoji:'🍕'},{kw:['自助','buffet','海鲜自助'],emoji:'🍽️'},
+      {kw:['云南','过桥','汽锅','菌'],emoji:'🍜'},{kw:['蒸汽','蒸汽海鲜'],emoji:'🦞'},
+      {kw:['火锅','海底捞','捞','涮','麻辣烫','冒菜','串串','小肥羊','呷哺'],emoji:'🍲'},
+      {kw:['烧烤','烤串','烤鱼','炭烤','烧鸟','夜宵','大排档'],emoji:'🍢'},
+      {kw:['烤肉','韩式','石锅','铜盘','炙','和牛','自助烤'],emoji:'🍖'},
+      {kw:['炸鸡','鸡','翅','德克士','正新','炸物'],emoji:'🍗'},
+      {kw:['牛排','西餐','扒','pizza','披萨','比萨'],emoji:'🥩'},
+      {kw:['意面','意大利面','pasta','意粉'],emoji:'🍝'},
+      {kw:['寿司','日料','日本','刺身','和食','居酒屋','鳗','三文鱼'],emoji:'🍣'},
+      {kw:['便当','定食','日式','弁当'],emoji:'🍱'},
+      {kw:['拉面','牛肉面','兰州','面馆','面','拌面','刀削','油泼'],emoji:'🍜'},
+      {kw:['米线','米粉','螺蛳粉','桂林','过桥'],emoji:'🍜'},
+      {kw:['盖饭','盖浇','黄焖','快餐','煲仔','焖','卤肉饭','便当饭'],emoji:'🍛'},
+      {kw:['粥','砂锅粥','生滚'],emoji:'🥣'},{kw:['饺子','水饺','蒸饺','锅贴','馄饨','抄手','云吞'],emoji:'🥟'},
+      {kw:['包子','馒头','早餐','油条','肠粉','点心','茶点','茶餐厅','港式','早茶'],emoji:'🥟'},
+      {kw:['汉堡','麦当劳','肯德基','kfc','汉堡王','华莱士','快餐店','西式'],emoji:'🍔'},
+      {kw:['薯','薯条','小吃','炸串'],emoji:'🍟'},{kw:['卷','墨西哥','taco','塔可','burrito'],emoji:'🌮'},
+      {kw:['沙拉','轻食','健康','蔬菜','素食','vegan','saladstop'],emoji:'🥗'},
+      {kw:['虾','龙虾','小龙虾','海鲜','大排','虾火锅','虾煲'],emoji:'🍤'},{kw:['蟹','大闸蟹','肉蟹煲'],emoji:'🦀'},
+      {kw:['川菜','麻辣','香锅','水煮','川','辣','重庆','成都'],emoji:'🌶️'},
+      {kw:['泰','泰式','东南亚','越南','咖喱','咖哩','印度'],emoji:'🍛'},
+      {kw:['奶茶','喜茶','茶百道','蜜雪','coco','一点点','霸王茶姬','茶'],emoji:'🧋'},
+      {kw:['咖啡','星巴克','瑞幸','manner','coffee','拿铁','luckin'],emoji:'☕'},
+      {kw:['蛋糕','烘焙','面包','甜品','甜点','慕斯','提拉米苏','点','bakery'],emoji:'🍰'},
+      {kw:['冰','雪糕','冰淇淋','冰激凌','甜筒'],emoji:'🍦'},{kw:['粤','广式','烧腊','煲汤','老火','靓汤'],emoji:'🍜'},
+      {kw:['羊肉','涮羊','手抓','新疆','大盘鸡'],emoji:'🍖'},{kw:['饼','煎饼','馅饼','肉夹馍','馍','陕西','西安'],emoji:'🫓'}
     ];
-    // 无关键词命中时的多样化 emoji 池（按名字 hash 稳定取值，保证多样且同名一致）
-    const FALLBACK_EMOJIS = ['🍜','🍚','🍲','🍛','🍱','🍔','🍕','🌮','🍣','🥟','🍝','🍗','🥗','🍤','🍖','🥘','🫕','🍢'];
+    const FALLBACK_FOOD=['🍜','🍚','🍲','🍛','🍱','🍔','🍕','🌮','🍣','🥟','🍝','🍗','🥗','🍤','🍖','🥘','🫕','🍢'];
+    function getFoodEmoji(name){ const n=String(name).toLowerCase(); for(const r of EMOJI_RULES)if(r.kw.some(k=>n.includes(k.toLowerCase())))return r.emoji; return FALLBACK_FOOD[hashStr(name)%FALLBACK_FOOD.length]; }
 
-    // 根据餐厅名字返回匹配的 logo emoji
-    function getEmojiForName(name) {
-      const n = String(name).toLowerCase();
-      for (const rule of EMOJI_RULES) {
-        if (rule.kw.some(k => n.includes(k.toLowerCase()))) return rule.emoji;
+    /* ==================== 地点 logo（非食物，多样化） ==================== */
+    // 规则顺序：越具体越靠前，先命中先用；每类给多个近义 emoji，按名称哈希取一个 → 同类也有变化
+    const PLACE_RULES=[
+      // —— 交通 / 工程 / 工业科技 ——
+      {kw:['桥','卢沟'],emoji:['🌉']},
+      {kw:['铁道','铁路','火车'],emoji:['🚂']},
+      {kw:['民航','飞机'],emoji:['✈️']},
+      {kw:['航天','卫星','火箭','航空航天'],emoji:['🚀','🛰️']},
+      {kw:['公交'],emoji:['🚌']},
+      {kw:['汽车','小米汽车','4s'],emoji:['🚗']},
+      {kw:['电信'],emoji:['📡']},
+      {kw:['化工'],emoji:['⚗️']},
+      {kw:['印刷'],emoji:['🖨️']},
+      {kw:['钱币'],emoji:['🪙']},
+      {kw:['地质'],emoji:['🪨']},
+      {kw:['农业'],emoji:['🌾']},
+      {kw:['机器人','引力场','科幻','soreal'],emoji:['🤖']},
+      {kw:['科技馆','科学','科技园','工厂','工业','机器'],emoji:['🔬','⚙️','🧪']},
+      // —— 古建 / 塔楼 / 城墙 ——
+      {kw:['钟楼'],emoji:['🕰️']},
+      {kw:['鼓楼'],emoji:['🥁']},
+      {kw:['白塔','塔'],emoji:['🗼']},
+      {kw:['城堡'],emoji:['🏰']},
+      {kw:['角楼','城墙','宛平','古城','老镇','琉璃渠','长辛店','村','故城'],emoji:['🏯','🏘️','🧱']},
+      {kw:['故居'],emoji:['🏠']},
+      {kw:['使馆'],emoji:['🏛️']},
+      {kw:['王府','恭王府'],emoji:['🏯']},
+      {kw:['旧货','市场'],emoji:['🛒']},
+      // —— 宗教 / 坛 ——
+      {kw:['教堂'],emoji:['⛪']},
+      {kw:['寺','庙','国子监'],emoji:['🛕','🏯']},
+      {kw:['坛','世纪坛'],emoji:['⛩️']},
+      // —— 文化场馆 ——
+      {kw:['天文'],emoji:['🔭','🌌']},
+      {kw:['海洋'],emoji:['🐠','🐳','🐙']},
+      {kw:['动物'],emoji:['🦁','🐾','🦒']},
+      {kw:['电影','影城'],emoji:['🎬','🍿']},
+      {kw:['唱片','收音机'],emoji:['💿','📻']},
+      {kw:['图书','书局','书店','藏书','典籍','文学馆'],emoji:['📚','📖','📕']},
+      {kw:['美术馆','艺术','画院','油画','雕塑','当代艺术','数字艺术'],emoji:['🎨','🖼️','🖌️']},
+      {kw:['规划展览','规划'],emoji:['🗺️']},
+      {kw:['海关'],emoji:['🛃']},
+      {kw:['法院'],emoji:['⚖️']},
+      {kw:['妇女儿童','儿童'],emoji:['🧸']},
+      {kw:['茶叶','茶'],emoji:['🍵']},
+      {kw:['咖啡'],emoji:['☕']},
+      {kw:['榴莲'],emoji:['🥭']},
+      {kw:['大剧院','剧院','艺术中心','礼品'],emoji:['🎭','🎼','🎻']},
+      {kw:['博物馆','博物院','展馆','展览','纪念','会馆','劝业场','文物','管理中心'],emoji:['🏛️','🏺','🗿']},
+      // —— 游乐 ——
+      {kw:['欢乐谷','乐园','星球','游乐','卡乐','城市乐园','环球影城'],emoji:['🎡','🎢','🎠']},
+      // —— 体育 ——
+      {kw:['体育','live','五棵松'],emoji:['🏟️','⚽']},
+      // —— 商业 / 购物 ——
+      {kw:['大悦城','天街','万达','万象','荟聚','奥莱','广场','购物中心','太古里','合生汇','大融城','skp','soho','大厦','购物公园','天阶','商城','商业','喜悦','中环','天地','mall','悦春风','荟','大族','六工汇','city park','dt51','喜隆多','station','box','vintage','金源','劝业','荟园','新辰汇','生活汇','暖山'],emoji:['🛍️','🏬','🛒','🏢']},
+      // —— 自然 ——
+      {kw:['植物','花卉','园林','大观园'],emoji:['🌷','🌸','🌺','🌿']},
+      {kw:['湿地','水库','滨水','群明','港湾','大运河','运河','河'],emoji:['🌊','🚣','💧']},
+      {kw:['湖'],emoji:['🏞️','🌊']},
+      {kw:['森林','山'],emoji:['⛰️','🌲','🏔️','🌳']},
+      {kw:['公园','绿心','花园'],emoji:['🌳','🌲','🏞️','🍃']},
+      // —— 街区 / 文创（兜底文化街区）——
+      {kw:['街','斜街','坊','里','记忆','园区','艺术区','文创','小镇','步行街','巷','站'],emoji:['🏙️','🏘️','🎏','🌆']}
+    ];
+    const FALLBACK_PLACE=['📍','🗺️','🏞️','🏙️','🎏','🚩','🧭','🏕️','🎪','🛖','⛲','🌇','🗿','🎑','🏝️','🎠'];
+    function getPlaceEmoji(name){
+      const n=String(name).toLowerCase();
+      for(const r of PLACE_RULES){ if(r.kw.some(k=>n.includes(k.toLowerCase()))){ const a=r.emoji; return a[hashStr(name)%a.length]; } }
+      return FALLBACK_PLACE[hashStr(name)%FALLBACK_PLACE.length];
+    }
+
+    /* ==================== 餐厅数据层 ==================== */
+    function loadPool(){ try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw===null)return DEFAULT_RESTAURANTS.slice(); return JSON.parse(raw); }catch(e){ return DEFAULT_RESTAURANTS.slice(); } }
+    function savePool(list){ localStorage.setItem(STORAGE_KEY,JSON.stringify(list)); }
+    let pool=loadPool();
+
+    /* ==================== 地名数据层 ==================== */
+    // PLACE_LIB = { suburb:[{name,dist}], ..., all:[...] }；持久化仅存 5 类
+    let PLACE_LIB={};
+    function seedPlaces(){ const o={}; PLACE_CATS.forEach(k=>o[k]=parseLib(PLACE_RAW[k])); return o; }
+    function loadPlaces(){
+      try{
+        const raw=localStorage.getItem(PLACE_KEY);
+        if(raw===null) return seedPlaces();
+        const obj=JSON.parse(raw); const o={};
+        PLACE_CATS.forEach(k=>o[k]=Array.isArray(obj[k])?obj[k]:[]);
+        return o;
+      }catch(e){ return seedPlaces(); }
+    }
+    function savePlaces(){ const o={}; PLACE_CATS.forEach(k=>o[k]=PLACE_LIB[k]); localStorage.setItem(PLACE_KEY,JSON.stringify(o)); }
+    // 由五类去重合并出 all（同名只留一条 → 等概率，不因跨分类而加权）
+    function rebuildAll(){ const map=new Map(); PLACE_CATS.forEach(k=>PLACE_LIB[k].forEach(it=>{ if(!map.has(it.name))map.set(it.name,it); })); PLACE_LIB.all=Array.from(map.values()); }
+    (function initPlaces(){ PLACE_LIB=loadPlaces(); rebuildAll(); if(localStorage.getItem(PLACE_KEY)===null)savePlaces(); })();
+
+    /* ==================== DOM ==================== */
+    const stageEl=document.getElementById('stage'), subhintEl=document.getElementById('subhint');
+    const pageTitle=document.getElementById('pageTitle'), pageSub=document.getElementById('pageSub');
+    const foodBtns=document.getElementById('foodBtns'), placeBtns=document.getElementById('placeBtns');
+    const openSettingsBtn=document.getElementById('openSettings'), toggleModeBtn=document.getElementById('toggleMode');
+    const toggleIcon=document.getElementById('toggleIcon'), toggleText=document.getElementById('toggleText');
+    const countEl=document.getElementById('count'), maskEl=document.getElementById('settingsMask');
+    const listEl=document.getElementById('list'), inputEl=document.getElementById('restaurantInput');
+    const placeMask=document.getElementById('placeMask'), placeTabs=document.getElementById('placeTabs');
+    const placeList=document.getElementById('placeList'), placeInput=document.getElementById('placeInput');
+    const placeCountLine=document.getElementById('placeCountLine');
+
+    let currentMode='food', busy=false, editCat='suburb';
+
+    /* ==================== 舞台渲染 ==================== */
+    function stageOne(emoji,name,emojiSize,nameSize,dim){
+      return '<div class="flex flex-col items-center gap-3">'+
+               '<div class="'+emojiSize+' floating leading-none">'+emoji+'</div>'+
+               '<div class="'+nameSize+' font-extrabold break-words '+(dim?'text-black/70':'text-[#2b2a26]')+'">'+escapeHTML(name)+'</div>'+
+             '</div>';
+    }
+    function renderFood(names){
+      if(names.length===2){
+        const col=nm=>'<div class="flex flex-col items-center gap-2 min-w-0 max-w-[46%]"><div class="text-5xl floating leading-none">'+getFoodEmoji(nm)+'</div><div class="text-2xl font-extrabold break-words text-[#2b2a26]">'+escapeHTML(nm)+'</div></div>';
+        stageEl.innerHTML='<div class="w-full flex items-start justify-center gap-6">'+col(names[0])+col(names[1])+'</div>';
+      }else{ stageEl.innerHTML=stageOne(getFoodEmoji(names[0]),names[0],'text-6xl','text-3xl',false); }
+    }
+    function placeCol(it){
+      const ns=it.name.length>8?'text-lg':'text-xl';
+      const d=it.dist!=null?'<div class="text-xs text-black/40 mt-1">约 '+it.dist+'km</div>':'';
+      return '<div class="flex flex-col items-center gap-2 min-w-0 max-w-[46%]"><div class="text-5xl floating leading-none">'+getPlaceEmoji(it.name)+'</div><div class="'+ns+' font-extrabold break-words text-[#2b2a26]">'+escapeHTML(it.name)+'</div>'+d+'</div>';
+    }
+    function renderPlaces(items){
+      if(items.length>=2){
+        stageEl.innerHTML='<div class="w-full flex items-start justify-center gap-6">'+placeCol(items[0])+placeCol(items[1])+'</div>';
+      }else{
+        const it=items[0]; const ns=it.name.length>9?'text-2xl':'text-3xl';
+        stageEl.innerHTML=stageOne(getPlaceEmoji(it.name),it.name,'text-6xl',ns,false);
       }
-      // 稳定 hash → 保证同一家餐厅每次都是同一个 logo，不同餐厅尽量不同
-      let h = 0;
-      for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-      return FALLBACK_EMOJIS[h % FALLBACK_EMOJIS.length];
+    }
+    function resetStage(text){ stageEl.innerHTML=stageOne('🎲',text,'text-6xl','text-3xl',true); }
+
+    /* ==================== 抽取动画 ==================== */
+    function setBusy(b){ busy=b; [...foodBtns.querySelectorAll('button'),...placeBtns.querySelectorAll('button')].forEach(x=>x.disabled=b); }
+    function spin(renderFrame,onDone){
+      setBusy(true); stageEl.classList.remove('pop-in'); stageEl.classList.add('blink'); subhintEl.textContent='抽取中…';
+      let t=0; const max=12;
+      const timer=setInterval(()=>{ renderFrame(); if(++t>=max){ clearInterval(timer); renderFrame(); stageEl.classList.remove('blink'); onDone(); void stageEl.offsetWidth; stageEl.classList.add('pop-in'); setBusy(false); } },55);
+    }
+    function pickFood(count){
+      if(busy)return; pool=loadPool();
+      if(pool.length===0){ alert('请先去设置添加餐厅'); openSettings(); return; }
+      if(count===2&&pool.length<2){ alert('抽两家至少需要 2 家餐厅哦'); return; }
+      spin(()=>renderFood(sampleN(pool,count)),()=>{ subhintEl.textContent=count===2?'这两家里挑一个吧！':'就决定是你了！'; });
+    }
+    function pickPlace(cat){
+      if(busy)return; const lib=PLACE_LIB[cat]||[];
+      if(lib.length===0){ alert('这个分类还没有地名，去设置里添加吧'); openPlaceSettings(); return; }
+      const label=PLACE_LABELS[cat]; const n=lib.length>=2?2:1; let picks=[];
+      spin(()=>{ picks=sampleN(lib,n); renderPlaces(picks); },()=>{ subhintEl.textContent=(n===2?'这两个挑一个吧！':'就去这儿吧！')+' · '+label; });
     }
 
-    /* ============ DOM 引用 ============ */
-    const stageEl     = document.getElementById('stage');
-    const subhintEl   = document.getElementById('subhint');
-    const pickBtn     = document.getElementById('pickBtn');
-    const pickTwoBtn  = document.getElementById('pickTwoBtn');
-    const countEl     = document.getElementById('count');
-    const maskEl      = document.getElementById('settingsMask');
-    const listEl      = document.getElementById('list');
-    const inputEl     = document.getElementById('restaurantInput');
-
-    /* ============ 工具函数 ============ */
-    // 从数组里随机取 n 个不重复元素
-    function sampleN(arr, n) {
-      const copy = arr.slice();
-      const out = [];
-      for (let i = 0; i < n && copy.length; i++) {
-        const idx = Math.floor(Math.random() * copy.length);
-        out.push(copy.splice(idx, 1)[0]);
-      }
-      return out;
-    }
-    function escapeHTML(str) {
-      return String(str).replace(/[&<>"']/g, s => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[s]));
+    /* ==================== 数量徽标 ==================== */
+    function updatePlaceCounts(){
+      placeBtns.querySelectorAll('.pcount').forEach(el=>{ const c=el.dataset.cnt; el.textContent=(c==='all'?PLACE_LIB.all.length:(PLACE_LIB[c]?PLACE_LIB[c].length:0)); });
     }
 
-    /* ============ 舞台渲染：logo 在上、餐厅名在下 ============ */
-    // 单个「logo↑ + 名字↓」列
-    function stageColumn(name, emojiSize, nameSize) {
-      const emoji = getEmojiForName(name);
-      return (
-        '<div class="flex flex-col items-center gap-2 min-w-0 max-w-[46%]">' +
-          '<div class="' + emojiSize + ' floating leading-none">' + emoji + '</div>' +
-          '<div class="' + nameSize + ' font-extrabold break-words text-[#2e2a22]">' + escapeHTML(name) + '</div>' +
-        '</div>'
-      );
-    }
-    // 渲染结果：一家=竖排大号；两家=横排两列（间隔协调）
-    function renderStage(names) {
-      if (names.length === 2) {
-        stageEl.innerHTML =
-          '<div class="w-full flex items-start justify-center gap-6">' +
-            stageColumn(names[0], 'text-5xl', 'text-2xl') +
-            stageColumn(names[1], 'text-5xl', 'text-2xl') +
-          '</div>';
-      } else {
-        stageEl.innerHTML =
-          '<div class="flex flex-col items-center gap-3">' +
-            '<div class="text-6xl floating leading-none">' + getEmojiForName(names[0]) + '</div>' +
-            '<div class="text-3xl font-extrabold break-words text-[#2e2a22]">' + escapeHTML(names[0]) + '</div>' +
-          '</div>';
+    /* ==================== 模式切换（含浅蓝主题） ==================== */
+    function switchMode(mode){
+      currentMode=mode; closeSettings(); closePlaceSettings();
+      if(mode==='place'){
+        document.body.classList.add('theme-blue');
+        pageTitle.textContent='今天去哪玩'; pageSub.textContent='选个方向，随机出发';
+        foodBtns.classList.add('hidden'); placeBtns.classList.remove('hidden');
+        toggleText.textContent='吃什么';
+        updatePlaceCounts(); resetStage('去哪玩呢'); subhintEl.textContent='选个方向开始';
+      }else{
+        document.body.classList.remove('theme-blue');
+        pageTitle.textContent='今天吃什么'; pageSub.textContent='点一下，把选择交给命运';
+        placeBtns.classList.add('hidden'); foodBtns.classList.remove('hidden');
+        toggleText.textContent='去哪玩';
+        resetStage('还没抽哦'); subhintEl.textContent='点击下方按钮开始';
       }
     }
 
-    /* ============ 列表渲染 ============ */
-    function renderCount() {
-      countEl.textContent = pool.length;
-    }
-    function renderList() {
-      listEl.innerHTML = '';
-      if (pool.length === 0) {
-        listEl.innerHTML = '<p class="text-center text-black/30 text-sm py-10">还没有餐厅，先添加一个吧 👆</p>';
-        return;
-      }
-      pool.forEach((name, index) => {
-        const row = document.createElement('div');
-        row.className = 'bg-[#f7efdd] rounded-2xl flex items-center justify-between pl-3 pr-2 py-2.5';
-        // 序号 + logo + 名字
-        const left = document.createElement('div');
-        left.className = 'flex items-center gap-2 min-w-0';
-        left.innerHTML =
-          '<span class="shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-[#e7d9b6] text-xs font-bold text-[#8a7743]">' + (index + 1) + '</span>' +
-          '<span class="text-xl leading-none">' + getEmojiForName(name) + '</span>';
-        const span = document.createElement('span');
-        span.className = 'text-sm font-medium break-all';
-        span.textContent = name;
-        left.appendChild(span);
-        row.appendChild(left);
-        // 删除按钮（触控区域放大）
-        const del = document.createElement('button');
-        del.className = 'shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-black/35 active:bg-black/10 active:scale-90 transition';
-        del.setAttribute('aria-label', '删除');
-        del.innerHTML =
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-        del.addEventListener('click', () => removeRestaurant(index));
-        row.appendChild(del);
-        listEl.appendChild(row);
+    /* ==================== 餐厅管理 ==================== */
+    function renderCount(){ countEl.textContent=pool.length; }
+    function renderList(){
+      listEl.innerHTML='';
+      if(pool.length===0){ listEl.innerHTML='<p class="text-center text-black/30 text-sm py-10">还没有餐厅，先添加一个吧 👆</p>'; return; }
+      pool.forEach((name,index)=>{
+        const row=document.createElement('div'); row.className='input-bg rounded-2xl flex items-center justify-between pl-3 pr-2 py-2.5';
+        const left=document.createElement('div'); left.className='flex items-center gap-2 min-w-0';
+        left.innerHTML='<span class="shrink-0 w-6 h-6 flex items-center justify-center rounded-full num-badge text-xs font-bold">'+(index+1)+'</span><span class="text-xl leading-none">'+getFoodEmoji(name)+'</span>';
+        const span=document.createElement('span'); span.className='text-sm font-medium break-all'; span.textContent=name; left.appendChild(span); row.appendChild(left);
+        const del=document.createElement('button'); del.className='shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-black/35 active:bg-black/10 active:scale-90 transition'; del.setAttribute('aria-label','删除');
+        del.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+        del.addEventListener('click',()=>removeRestaurant(index)); row.appendChild(del); listEl.appendChild(row);
       });
     }
+    function addRestaurant(){
+      const raw=inputEl.value; if(!raw.trim())return;
+      const names=raw.split(/[\s\u3000]+/).map(s=>s.trim()).filter(Boolean);
+      let added=0; names.forEach(name=>{ if(!pool.includes(name)){ pool.push(name); added++; } });
+      if(added>0)savePool(pool); inputEl.value=''; renderList(); renderCount();
+    }
+    function removeRestaurant(i){ pool.splice(i,1); savePool(pool); renderList(); renderCount(); }
+    function clearAll(){ if(pool.length===0)return; if(!confirm('确定清空全部餐厅吗？'))return; pool=[]; savePool(pool); renderList(); renderCount(); }
+    function openSettings(){ maskEl.style.display='flex'; maskEl.classList.add('fade-in'); renderList(); }
+    function closeSettings(){ maskEl.style.display='none'; }
 
-    /* ============ 业务逻辑 ============ */
-    // 批量添加：支持空格（含全角空格）/ 换行分隔，逐条识别、去重
-    function addRestaurant() {
-      const raw = inputEl.value;
-      if (!raw.trim()) return;
-      // 按空白字符拆分（半角/全角空格、Tab、换行），过滤空项
-      const names = raw.split(/[\s\u3000]+/).map(s => s.trim()).filter(Boolean);
-      let added = 0;
-      names.forEach(name => {
-        if (!pool.includes(name)) {   // 与已有及本批次去重
-          pool.push(name);
-          added++;
-        }
+    /* ==================== 地名管理 ==================== */
+    function renderPlaceTabs(){
+      placeTabs.innerHTML='';
+      PLACE_CATS.forEach(k=>{
+        const b=document.createElement('button');
+        const active=k===editCat;
+        b.className='px-3 h-9 rounded-full text-sm font-bold transition active:scale-95 '+(active?'btn-dark text-white':'pill-warm');
+        b.textContent=PLACE_LABELS[k]+' '+PLACE_LIB[k].length;
+        b.addEventListener('click',()=>{ editCat=k; renderPlaceTabs(); renderPlaceList(); });
+        placeTabs.appendChild(b);
       });
-      if (added > 0) savePool(pool);
-      inputEl.value = '';
-      renderList();
-      renderCount();
+      placeCountLine.textContent='当前「'+PLACE_LABELS[editCat]+'」'+PLACE_LIB[editCat].length+' 个 · 全部随机去重后共 '+PLACE_LIB.all.length+' 个';
     }
-    function removeRestaurant(index) {
-      pool.splice(index, 1);
-      savePool(pool);
-      renderList();
-      renderCount();
+    function renderPlaceList(){
+      placeList.innerHTML='';
+      const lib=PLACE_LIB[editCat];
+      if(lib.length===0){ placeList.innerHTML='<p class="text-center text-black/30 text-sm py-10">该分类还没有地名，添加一个吧 👆</p>'; return; }
+      lib.forEach((it,index)=>{
+        const row=document.createElement('div'); row.className='input-bg rounded-2xl flex items-center justify-between pl-3 pr-2 py-2.5';
+        const left=document.createElement('div'); left.className='flex items-center gap-2 min-w-0';
+        left.innerHTML='<span class="shrink-0 w-6 h-6 flex items-center justify-center rounded-full num-badge text-xs font-bold">'+(index+1)+'</span><span class="text-xl leading-none">'+getPlaceEmoji(it.name)+'</span>';
+        const span=document.createElement('span'); span.className='text-sm font-medium break-all';
+        span.innerHTML=escapeHTML(it.name)+(it.dist!=null?'<span class="text-black/35 font-normal"> · '+it.dist+'km</span>':'');
+        left.appendChild(span); row.appendChild(left);
+        const del=document.createElement('button'); del.className='shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-black/35 active:bg-black/10 active:scale-90 transition'; del.setAttribute('aria-label','删除');
+        del.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+        del.addEventListener('click',()=>removePlace(index)); row.appendChild(del); placeList.appendChild(row);
+      });
     }
-    function clearAll() {
-      if (pool.length === 0) return;
-      if (!confirm('确定清空全部餐厅吗？')) return;
-      pool = [];
-      savePool(pool);
-      renderList();
-      renderCount();
+    // 添加地名：换行 / 逗号（，,）分隔，每条结尾数字视为距离
+    function addPlace(){
+      const raw=placeInput.value; if(!raw.trim())return;
+      const parts=raw.split(/[\n,，]+/).map(s=>s.trim()).filter(Boolean);
+      const exist=new Set(PLACE_LIB[editCat].map(x=>x.name));
+      let added=0;
+      parts.forEach(p=>{ const e=parseEntry(p); if(e.name&&!exist.has(e.name)){ PLACE_LIB[editCat].push(e); exist.add(e.name); added++; } });
+      if(added>0){ savePlaces(); rebuildAll(); updatePlaceCounts(); }
+      placeInput.value=''; renderPlaceTabs(); renderPlaceList();
     }
+    function removePlace(i){ PLACE_LIB[editCat].splice(i,1); savePlaces(); rebuildAll(); updatePlaceCounts(); renderPlaceTabs(); renderPlaceList(); }
+    function clearPlaceCat(){
+      if(PLACE_LIB[editCat].length===0)return;
+      if(!confirm('确定清空「'+PLACE_LABELS[editCat]+'」全部地名吗？'))return;
+      PLACE_LIB[editCat]=[]; savePlaces(); rebuildAll(); updatePlaceCounts(); renderPlaceTabs(); renderPlaceList();
+    }
+    function openPlaceSettings(){ placeMask.style.display='flex'; placeMask.classList.add('fade-in'); renderPlaceTabs(); renderPlaceList(); }
+    function closePlaceSettings(){ placeMask.style.display='none'; }
 
-    // 抽取入口：count = 1 或 2
-    function pick(count) {
-      pool = loadPool(); // 抽取前同步最新数据
-      if (pool.length === 0) {
-        alert('请先去设置添加餐厅');
-        openSettings();
-        return;
-      }
-      if (count === 2 && pool.length < 2) {
-        alert('抽两家至少需要 2 家餐厅哦');
-        return;
-      }
+    /* ==================== 事件绑定 ==================== */
+    foodBtns.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>pickFood(parseInt(b.dataset.food,10))));
+    placeBtns.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>pickPlace(b.dataset.cat)));
+    toggleModeBtn.addEventListener('click',()=>switchMode(currentMode==='food'?'place':'food'));
+    // 设置按钮按当前模式打开对应设置
+    openSettingsBtn.addEventListener('click',()=>{ currentMode==='place'?openPlaceSettings():openSettings(); });
+    document.getElementById('closeSettings').addEventListener('click',closeSettings);
+    document.getElementById('addBtn').addEventListener('click',addRestaurant);
+    document.getElementById('clearBtn').addEventListener('click',clearAll);
+    inputEl.addEventListener('keydown',e=>{ if(e.key==='Enter')addRestaurant(); });
+    maskEl.addEventListener('click',e=>{ if(e.target===maskEl)closeSettings(); });
+    document.getElementById('closePlace').addEventListener('click',closePlaceSettings);
+    document.getElementById('addPlace').addEventListener('click',addPlace);
+    document.getElementById('clearPlace').addEventListener('click',clearPlaceCat);
+    placeInput.addEventListener('keydown',e=>{ if(e.key==='Enter')addPlace(); });
+    placeMask.addEventListener('click',e=>{ if(e.target===placeMask)closePlaceSettings(); });
 
-      pickBtn.disabled = true;
-      pickTwoBtn.disabled = true;
-      stageEl.classList.remove('pop-in');
-      stageEl.classList.add('blink');
-      subhintEl.textContent = '抽取中…';
-
-      let ticks = 0;
-      const maxTicks = 12;
-      const timer = setInterval(() => {
-        renderStage(sampleN(pool, count));          // 滚动预览（logo 随名字变化）
-        ticks++;
-        if (ticks >= maxTicks) {
-          clearInterval(timer);
-          renderStage(sampleN(pool, count));         // 最终结果
-          stageEl.classList.remove('blink');
-          subhintEl.textContent = count === 2 ? '这两家里挑一个吧！' : '就决定是你了！';
-          void stageEl.offsetWidth;                  // 重排以重启动画
-          stageEl.classList.add('pop-in');
-          pickBtn.disabled = false;
-          pickTwoBtn.disabled = false;
-        }
-      }, 55);
-    }
-
-    /* ============ 弹窗控制 ============ */
-    function openSettings() {
-      maskEl.style.display = 'flex';
-      maskEl.classList.add('fade-in');
-      renderList();
-    }
-    function closeSettings() {
-      maskEl.style.display = 'none';
-    }
-
-    /* ============ 事件绑定 ============ */
-    pickBtn.addEventListener('click', () => pick(1));
-    pickTwoBtn.addEventListener('click', () => pick(2));
-    document.getElementById('openSettings').addEventListener('click', openSettings);
-    document.getElementById('closeSettings').addEventListener('click', closeSettings);
-    document.getElementById('addBtn').addEventListener('click', addRestaurant);
-    document.getElementById('clearBtn').addEventListener('click', clearAll);
-    inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') addRestaurant(); });
-    maskEl.addEventListener('click', e => { if (e.target === maskEl) closeSettings(); });
-
-    /* ============ 初始化 ============ */
-    // 首次访问：把默认餐厅持久化到本地，之后用户的增删都以其为基础
-    if (localStorage.getItem(STORAGE_KEY) === null) {
-      savePool(pool);
-    }
-    renderCount();
+    /* ==================== 初始化 ==================== */
+    if(localStorage.getItem(STORAGE_KEY)===null)savePool(pool);
+    renderCount(); updatePlaceCounts();
   </script>
 </body>
 </html>
