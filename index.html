@@ -63,7 +63,6 @@
   <header class="w-full flex items-center justify-between px-5 pt-6 pb-1">
     <div class="min-w-0">
       <h1 id="pageTitle" class="text-xl font-extrabold tracking-tight leading-none">今天吃什么</h1>
-      <p id="pageSub" class="text-xs text-black/40 mt-1">点一下，把选择交给命运</p>
     </div>
     <div class="shrink-0 flex items-center gap-2">
       <!-- 模式切换按钮 -->
@@ -565,7 +564,7 @@ SoReal科幻乐园 24.5
 
     /* ==================== DOM ==================== */
     const stageEl=document.getElementById('stage'), subhintEl=document.getElementById('subhint');
-    const pageTitle=document.getElementById('pageTitle'), pageSub=document.getElementById('pageSub');
+    const pageTitle=document.getElementById('pageTitle');
     const foodBtns=document.getElementById('foodBtns'), placeBtns=document.getElementById('placeBtns');
     const openSettingsBtn=document.getElementById('openSettings'), toggleModeBtn=document.getElementById('toggleMode');
     const toggleIcon=document.getElementById('toggleIcon'), toggleText=document.getElementById('toggleText');
@@ -622,7 +621,7 @@ SoReal科幻乐园 24.5
       if(busy)return; const lib=PLACE_LIB[cat]||[];
       if(lib.length===0){ alert('这个分类还没有地名，去设置里添加吧'); openPlaceSettings(); return; }
       const label=PLACE_LABELS[cat]; const n=lib.length>=2?2:1; let picks=[];
-      spin(()=>{ picks=sampleN(lib,n); renderPlaces(picks); },()=>{ subhintEl.textContent=(n===2?'这两个挑一个吧！':'就去这儿吧！')+' · '+label; });
+      spin(()=>{ picks=sampleN(lib,n); renderPlaces(picks); },()=>{ subhintEl.textContent=(n===2?'这两个挑一个吧！':'就去这儿吧！'); });
     }
 
     /* ==================== 数量徽标 ==================== */
@@ -635,13 +634,13 @@ SoReal科幻乐园 24.5
       currentMode=mode; closeSettings(); closePlaceSettings();
       if(mode==='place'){
         document.body.classList.add('theme-blue');
-        pageTitle.textContent='今天去哪玩'; pageSub.textContent='选个方向，随机出发';
+        pageTitle.textContent='今天去哪玩';
         foodBtns.classList.add('hidden'); placeBtns.classList.remove('hidden');
         toggleText.textContent='吃什么';
         updatePlaceCounts(); resetStage('去哪玩呢'); subhintEl.textContent='选个方向开始';
       }else{
         document.body.classList.remove('theme-blue');
-        pageTitle.textContent='今天吃什么'; pageSub.textContent='点一下，把选择交给命运';
+        pageTitle.textContent='今天吃什么';
         placeBtns.classList.add('hidden'); foodBtns.classList.remove('hidden');
         toggleText.textContent='去哪玩';
         resetStage('还没抽哦'); subhintEl.textContent='点击下方按钮开始';
